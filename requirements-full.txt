@@ -1,0 +1,16 @@
+# Full requirements including PDF import functionality
+# Use this for complete functionality with PDF processing
+
+# Core server dependencies  
+-r requirements.txt
+
+# PDF extraction dependencies (for PDF import feature)
+google-generativeai>=0.2.0
+pdf2image>=1.16.0,<2.0.0
+PyMuPDF>=1.20.0,<2.0.0  
+Pillow>=9.0.0,<11.0.0
+pytesseract>=0.3.7
+
+# Additional data processing
+openpyxl>=3.0.0
+xlrd>=2.0.0
