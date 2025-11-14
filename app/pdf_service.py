@@ -40,7 +40,7 @@ class PDFImportService:
         self.active_imports = {}  # Track active import jobs
         self._import_lock = asyncio.Lock()  # Lock to prevent concurrent imports
         
-    async def get_pdf_info(self, pdf_path: str) -> Dict[str, Any]:
+    async def get_pdf_info(self, pdf_path: str, gemini_api_key: str = None) -> Dict[str, Any]:
         """
         Get basic PDF information without AI extraction (faster)
         
@@ -58,9 +58,10 @@ class PDFImportService:
                     'pdf_name': os.path.basename(pdf_path)
                 }
             
-            api_key = os.getenv('GEMINI_API_KEY')
+            # Use provided API key or fall back to environment variable
+            api_key = gemini_api_key or os.getenv('GEMINI_API_KEY')
             if not api_key:
-                raise ValueError("GEMINI_API_KEY not set")
+                raise ValueError("Gemini API key not provided. Please provide your API key.")
             
             # Just get page count, no AI extraction
             extractor = GeminiExtractor(pdf_path, api_key)
@@ -87,7 +88,7 @@ class PDFImportService:
     async def start_import(self, import_id: str, pdf_path: str, 
                           district: str, constituency: str, 
                           polling_station: str, station_number: str = None,
-                          extraction_method: str = 'gemini') -> Dict[str, Any]:
+                          extraction_method: str = 'gemini', gemini_api_key: str = None) -> Dict[str, Any]:
         """
         Start importing PDF in background
         
@@ -118,7 +119,7 @@ class PDFImportService:
         # Start background task
         asyncio.create_task(
             self._run_import(import_id, pdf_path, district, constituency, 
-                           polling_station, station_number, extraction_method)
+                           polling_station, station_number, extraction_method, gemini_api_key)
         )
         
         return {
@@ -130,7 +131,7 @@ class PDFImportService:
     async def _run_import(self, import_id: str, pdf_path: str,
                          district: str, constituency: str,
                          polling_station: str, station_number: str = None,
-                         extraction_method: str = 'gemini'):
+                         extraction_method: str = 'gemini', gemini_api_key: str = None):
         """Background task to run the actual import"""
         try:
             if not PDF_PROCESSING_AVAILABLE:
@@ -144,9 +145,9 @@ class PDFImportService:
                 extractor = SimpleVoterParser(pdf_path, language='eng+tam')
             else:
                 # Use Gemini AI (default)
-                api_key = os.getenv('GEMINI_API_KEY')
+                api_key = gemini_api_key or os.getenv('GEMINI_API_KEY')
                 if not api_key:
-                    raise ValueError("GEMINI_API_KEY not set")
+                    raise ValueError("Gemini API key not provided. Please provide your API key.")
                 from extractors.gemini_extractor import GeminiExtractor
                 extractor = GeminiExtractor(pdf_path, api_key)
             

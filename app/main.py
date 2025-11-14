@@ -630,9 +630,18 @@ async def root():
                             <input type="text" id="stationNumberInput" placeholder="Auto-filled" readonly style="background: #f5f5f7;" />
                         </div>
                         
+                        <div class="form-group" id="apiKeyGroup">
+                            <label>Gemini API Key * <span style="font-size: 12px; font-weight: normal; color: #6e6e73;">(session-only, not stored)</span></label>
+                            <input type="password" id="geminiApiKey" placeholder="Enter your Gemini API key" style="width: 100%;" />
+                            <div style="font-size: 11px; color: #6e6e73; margin-top: 6px; line-height: 1.4;">
+                                🔒 Your API key is stored only in your browser session and is never saved to our servers.<br>
+                                Get a free key: <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #0071e3;">Google AI Studio</a>
+                            </div>
+                        </div>
+                        
                         <div class="form-group">
                             <label>Extraction Method *</label>
-                            <select id="extractionMethod" style="width: 100%;">
+                            <select id="extractionMethod" style="width: 100%;" onchange="handleExtractionMethodChange()">
                                 <option value="gemini">AI-Powered (High Accuracy, Slower)</option>
                                 <option value="tesseract">OCR-Based (Faster, Standard Accuracy)</option>
                             </select>
@@ -990,6 +999,36 @@ async def root():
             let isMinimized = false;
             let electoralData = null; // Cache electoral data
 
+            // Session storage for API key
+            function getGeminiApiKey() {
+                return sessionStorage.getItem('gemini_api_key');
+            }
+
+            function setGeminiApiKey(key) {
+                sessionStorage.setItem('gemini_api_key', key);
+            }
+
+            function clearGeminiApiKey() {
+                sessionStorage.removeItem('gemini_api_key');
+            }
+
+            // Handle extraction method change to show/hide API key field
+            function handleExtractionMethodChange() {
+                const method = document.getElementById('extractionMethod').value;
+                const apiKeyGroup = document.getElementById('apiKeyGroup');
+                
+                if (method === 'gemini') {
+                    apiKeyGroup.style.display = 'block';
+                    // Load API key from session if available
+                    const savedKey = getGeminiApiKey();
+                    if (savedKey) {
+                        document.getElementById('geminiApiKey').value = savedKey;
+                    }
+                } else {
+                    apiKeyGroup.style.display = 'none';
+                }
+            }
+
             function openImportPanel() {
                 const panel = document.getElementById('importPanel');
                 panel.classList.add('open');
@@ -1000,6 +1039,9 @@ async def root():
                 if (!electoralData) {
                     loadElectoralData();
                 }
+                
+                // Load saved API key if exists
+                handleExtractionMethodChange();
             }
 
             async function loadElectoralData() {
@@ -1267,6 +1309,18 @@ async def root():
                     return;
                 }
                 
+                // Validate and save API key if using Gemini
+                let apiKey = null;
+                if (extractionMethod === 'gemini') {
+                    apiKey = document.getElementById('geminiApiKey').value.trim();
+                    if (!apiKey) {
+                        alert('Please enter your Gemini API key for AI-powered extraction.\n\nGet a free key at: https://aistudio.google.com/app/apikey');
+                        return;
+                    }
+                    // Save to session storage for this session only
+                    setGeminiApiKey(apiKey);
+                }
+                
                 // Show progress step
                 document.getElementById('uploadStep').style.display = 'none';
                 document.getElementById('progressStep').style.display = 'block';
@@ -1280,6 +1334,7 @@ async def root():
                     formData.append('polling_station', pollingStation);
                     formData.append('extraction_method', extractionMethod);
                     if (stationNumber) formData.append('station_number', stationNumber);
+                    if (apiKey) formData.append('gemini_api_key', apiKey);
                     
                     const response = await fetch('/api/import/start', {
                         method: 'POST',
@@ -1287,6 +1342,11 @@ async def root():
                     });
                     
                     const data = await response.json();
+                    
+                    if (data.detail) {
+                        throw new Error(data.detail);
+                    }
+                    
                     currentImportId = data.import_id;
                     
                     // Start polling for progress
@@ -1486,9 +1546,10 @@ async def api_stats():
 
 # PDF Import Endpoints
 @app.post("/api/import/identify")
-async def import_identify_pdf(file: UploadFile = File(...)):
+async def import_identify_pdf(file: UploadFile = File(...), gemini_api_key: str = Form(None)):
     """
     Upload PDF and get basic info (fast, no AI extraction)
+    gemini_api_key: User's Gemini API key (optional, for validation only)
     """
     try:
         # Save uploaded file temporarily
@@ -1498,7 +1559,7 @@ async def import_identify_pdf(file: UploadFile = File(...)):
             tmp_file_path = tmp_file.name
         
         # Get basic PDF info (no AI, just page count)
-        info = await pdf_import_service.get_pdf_info(tmp_file_path)
+        info = await pdf_import_service.get_pdf_info(tmp_file_path, gemini_api_key)
         
         # Store temp file path for later use
         info['temp_file_path'] = tmp_file_path
@@ -1522,16 +1583,22 @@ async def import_start_extraction(
     constituency: str = Form(...),
     polling_station: str = Form(...),
     station_number: str = Form(None),
-    extraction_method: str = Form('gemini')
+    extraction_method: str = Form('gemini'),
+    gemini_api_key: str = Form(None)
 ):
     """
     Start extraction process after user confirms metadata
     extraction_method: 'gemini' for AI (slower, accurate) or 'tesseract' for OCR (faster, less accurate)
+    gemini_api_key: User's Gemini API key (session-only, never persisted)
     """
     try:
         # Validate temp file exists
         if not os.path.exists(temp_file_path):
             raise HTTPException(status_code=400, detail="Temporary file not found")
+        
+        # Validate Gemini API key if using gemini extraction
+        if extraction_method == 'gemini' and not gemini_api_key:
+            raise HTTPException(status_code=400, detail="Gemini API key is required for AI-powered extraction")
         
         # Generate unique import ID
         import_id = str(uuid.uuid4())
@@ -1544,7 +1611,8 @@ async def import_start_extraction(
             constituency=constituency,
             polling_station=polling_station,
             station_number=station_number,
-            extraction_method=extraction_method
+            extraction_method=extraction_method,
+            gemini_api_key=gemini_api_key
         )
         
         return result
