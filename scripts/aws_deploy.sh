@@ -37,7 +37,15 @@ if git diff HEAD@{1} HEAD --name-only | grep -q "requirements"; then
     echo -e "\n${YELLOW}📦 Requirements changed, updating dependencies...${NC}"
     if [ -d "venv" ]; then
         source venv/bin/activate
-        pip install -r requirements.txt --quiet
+        
+        # Install full requirements for PDF import functionality
+        if [ -f "requirements-full.txt" ]; then
+            echo "  - Installing full requirements (includes PDF processing)..."
+            pip install -r requirements-full.txt --quiet
+        else
+            pip install -r requirements.txt --quiet
+        fi
+        
         echo -e "${GREEN}✓ Dependencies updated${NC}"
     else
         echo -e "${YELLOW}⚠ Virtual environment not found, skipping dependency update${NC}"

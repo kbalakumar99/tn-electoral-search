@@ -61,10 +61,25 @@ class PDFImportService:
                 }
             
             # Use PyMuPDF (fitz) to get page count - NO API KEY NEEDED
-            import fitz  # PyMuPDF
-            pdf_doc = fitz.open(pdf_path)
-            num_pages = len(pdf_doc)
-            pdf_doc.close()
+            try:
+                import fitz  # PyMuPDF
+            except ImportError:
+                return {
+                    'success': False,
+                    'error': 'PyMuPDF (fitz) not installed. Install with: pip install PyMuPDF',
+                    'pdf_name': os.path.basename(pdf_path)
+                }
+            
+            try:
+                pdf_doc = fitz.open(pdf_path)
+                num_pages = len(pdf_doc)
+                pdf_doc.close()
+            except Exception as pdf_error:
+                return {
+                    'success': False,
+                    'error': f'Failed to read PDF: {str(pdf_error)}',
+                    'pdf_name': os.path.basename(pdf_path)
+                }
             
             result = {
                 'success': True,
@@ -81,8 +96,8 @@ class PDFImportService:
         except Exception as e:
             return {
                 'success': False,
-                'error': str(e),
-                'pdf_name': os.path.basename(pdf_path)
+                'error': f'Unexpected error: {str(e)}',
+                'pdf_name': os.path.basename(pdf_path) if pdf_path else 'unknown'
             }
     
     async def start_import(self, import_id: str, pdf_path: str, 
