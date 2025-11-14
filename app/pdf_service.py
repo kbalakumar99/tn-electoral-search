@@ -43,9 +43,11 @@ class PDFImportService:
     async def get_pdf_info(self, pdf_path: str, gemini_api_key: str = None) -> Dict[str, Any]:
         """
         Get basic PDF information without AI extraction (faster)
+        NO API KEY REQUIRED - just reads page count
         
         Args:
             pdf_path: Path to uploaded PDF file
+            gemini_api_key: Not used here, for compatibility only
             
         Returns:
             Dictionary with basic PDF info
@@ -58,18 +60,16 @@ class PDFImportService:
                     'pdf_name': os.path.basename(pdf_path)
                 }
             
-            # Use provided API key or fall back to environment variable
-            api_key = gemini_api_key or os.getenv('GEMINI_API_KEY')
-            if not api_key:
-                raise ValueError("Gemini API key not provided. Please provide your API key.")
-            
-            # Just get page count, no AI extraction
-            extractor = GeminiExtractor(pdf_path, api_key)
+            # Use PyMuPDF (fitz) to get page count - NO API KEY NEEDED
+            import fitz  # PyMuPDF
+            pdf_doc = fitz.open(pdf_path)
+            num_pages = len(pdf_doc)
+            pdf_doc.close()
             
             result = {
                 'success': True,
                 'pdf_name': os.path.basename(pdf_path),
-                'total_pages': extractor.num_pages,
+                'total_pages': num_pages,
                 'district': '',
                 'constituency': '',
                 'polling_station': '',

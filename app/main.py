@@ -1577,7 +1577,8 @@ async def api_stats():
 async def import_identify_pdf(file: UploadFile = File(...), gemini_api_key: str = Form(None)):
     """
     Upload PDF and get basic info (fast, no AI extraction)
-    gemini_api_key: User's Gemini API key (optional, for validation only)
+    Returns: PDF name and page count
+    Note: API key is NOT required at this stage (only for actual extraction)
     """
     tmp_file_path = None
     try:
