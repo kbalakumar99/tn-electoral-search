@@ -1256,6 +1256,18 @@ async def root():
                         body: formData
                     });
                     
+                    if (!response.ok) {
+                        const text = await response.text();
+                        let errorMsg = 'Failed to process PDF';
+                        try {
+                            const errorData = JSON.parse(text);
+                            errorMsg = errorData.detail || errorData.error || errorMsg;
+                        } catch {
+                            errorMsg = text || errorMsg;
+                        }
+                        throw new Error(errorMsg);
+                    }
+                    
                     const data = await response.json();
                     
                     if (!data.success) {
@@ -1567,6 +1579,7 @@ async def import_identify_pdf(file: UploadFile = File(...), gemini_api_key: str 
     Upload PDF and get basic info (fast, no AI extraction)
     gemini_api_key: User's Gemini API key (optional, for validation only)
     """
+    tmp_file_path = None
     try:
         # Save uploaded file temporarily
         with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
@@ -1577,6 +1590,12 @@ async def import_identify_pdf(file: UploadFile = File(...), gemini_api_key: str 
         # Get basic PDF info (no AI, just page count)
         info = await pdf_import_service.get_pdf_info(tmp_file_path, gemini_api_key)
         
+        # If there was an error, cleanup temp file and return error response
+        if not info.get('success', True):
+            if tmp_file_path and os.path.exists(tmp_file_path):
+                os.unlink(tmp_file_path)
+            return JSONResponse(status_code=400, content=info)
+        
         # Store temp file path for later use
         info['temp_file_path'] = tmp_file_path
         
@@ -1584,12 +1603,15 @@ async def import_identify_pdf(file: UploadFile = File(...), gemini_api_key: str 
         
     except Exception as e:
         # Cleanup on error
-        if 'tmp_file_path' in locals():
+        if tmp_file_path and os.path.exists(tmp_file_path):
             try:
                 os.unlink(tmp_file_path)
             except:
                 pass
-        raise HTTPException(status_code=500, detail=str(e))
+        return JSONResponse(status_code=500, content={
+            'success': False,
+            'error': str(e)
+        })
 
 
 @app.post("/api/import/start")
