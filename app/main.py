@@ -710,20 +710,32 @@ async def root():
 
             // Load locations on page load
             async function loadLocations() {
+                console.log('🔄 Loading locations from API...');
                 try {
                     const response = await fetch('/api/locations');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
                     locationsData = await response.json();
+                    console.log('✅ Locations loaded:', locationsData.districts.length, 'districts');
 
                     // Populate districts
                     const districtSelect = document.getElementById('district');
+                    if (!districtSelect) {
+                        console.error('❌ District select element not found!');
+                        return;
+                    }
+                    
                     locationsData.districts.forEach(district => {
                         const option = document.createElement('option');
                         option.value = district.name;
                         option.textContent = district.name;
                         districtSelect.appendChild(option);
                     });
+                    console.log('✅ Districts populated in dropdown');
                 } catch (error) {
-                    console.error('Error loading locations:', error);
+                    console.error('❌ Error loading locations:', error);
+                    alert('Failed to load location data. Please refresh the page.');
                 }
             }
 
@@ -896,7 +908,11 @@ async def root():
             }
 
             // Load locations when page loads
-            window.addEventListener('DOMContentLoaded', loadLocations);
+            console.log('📄 Script loaded, setting up DOMContentLoaded listener...');
+            window.addEventListener('DOMContentLoaded', function() {
+                console.log('🚀 DOMContentLoaded fired, loading locations...');
+                loadLocations();
+            });
 
             function displayResults(data) {
                 // Display stats
