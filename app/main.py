@@ -1330,7 +1330,7 @@ async def root():
                 if (extractionMethod === 'gemini') {
                     apiKey = document.getElementById('geminiApiKey').value.trim();
                     if (!apiKey) {
-                        alert('Please enter your Gemini API key for AI-powered extraction.\n\nGet a free key at: https://aistudio.google.com/app/apikey');
+                        alert('Please enter your Gemini API key for AI-powered extraction.\\n\\nGet a free key at: https://aistudio.google.com/app/apikey');
                         return;
                     }
                     // Save to session storage for this session only
