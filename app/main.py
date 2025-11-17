@@ -129,6 +129,64 @@ async def root():
                 letter-spacing: 0.012em;
                 color: #6e6e73;
             }
+
+            .import-notice {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border-radius: 16px;
+                padding: 20px 28px;
+                margin-bottom: 24px;
+                box-shadow: 0 4px 16px rgba(102, 126, 234, 0.25);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            .import-notice h3 {
+                font-size: 18px;
+                font-weight: 600;
+                margin-bottom: 12px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .import-notice p {
+                font-size: 14px;
+                line-height: 1.6;
+                margin-bottom: 12px;
+                opacity: 0.95;
+            }
+
+            .import-notice ol {
+                margin: 12px 0 12px 20px;
+                padding: 0;
+                font-size: 14px;
+                line-height: 1.8;
+            }
+
+            .import-notice li {
+                margin-bottom: 6px;
+            }
+
+            .import-notice code {
+                background: rgba(255, 255, 255, 0.15);
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+                font-size: 13px;
+            }
+
+            .import-notice a {
+                color: white;
+                text-decoration: underline;
+                text-decoration-color: rgba(255, 255, 255, 0.5);
+                font-weight: 500;
+                transition: text-decoration-color 0.2s;
+            }
+
+            .import-notice a:hover {
+                text-decoration-color: white;
+            }
+
             .search-box {
                 background: white;
                 border-radius: 18px;
@@ -546,6 +604,21 @@ async def root():
             <div class="header">
                 <h1>TN - SIR 2002 - Electoral Search</h1>
                 <p>Search voter data from electoral rolls.</p>
+            </div>
+
+            <!-- Import Notice -->
+            <div class="import-notice">
+                <h3>📥 No Data Found?</h3>
+                <p><strong>If your polling station or constituency shows no results</strong>, the data hasn't been imported yet.</p>
+                <p><strong>To add the data:</strong></p>
+                <ol>
+                    <li>Download the PDF from <a href="https://erolls.tn.gov.in/Rollpdf/SIR_2002.aspx" target="_blank">TN Electoral Rolls</a></li>
+                    <li>Click the <code>📄 Import PDF</code> button below</li>
+                    <li>Upload the PDF and confirm the details</li>
+                    <li>Wait for extraction to complete (~3-5 sec/page)</li>
+                    <li>Search immediately after import!</li>
+                </ol>
+                <p style="margin-bottom: 0;"><strong>Need help downloading?</strong> Select: District → Constituency → Part, solve CAPTCHA, then save the PDF.</p>
             </div>
 
             <div class="search-box">
