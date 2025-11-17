@@ -134,19 +134,66 @@ async def root():
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
                 border-radius: 16px;
-                padding: 20px 28px;
                 margin-bottom: 24px;
                 box-shadow: 0 4px 16px rgba(102, 126, 234, 0.25);
                 border: 1px solid rgba(255, 255, 255, 0.1);
+                overflow: hidden;
+                transition: all 0.3s ease;
+            }
+
+            .import-notice.collapsed {
+                padding: 16px 28px;
+            }
+
+            .import-notice:not(.collapsed) {
+                padding: 20px 28px;
+            }
+
+            .import-notice-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                cursor: pointer;
+                user-select: none;
             }
 
             .import-notice h3 {
                 font-size: 18px;
                 font-weight: 600;
-                margin-bottom: 12px;
+                margin: 0;
                 display: flex;
                 align-items: center;
                 gap: 8px;
+            }
+
+            .toggle-notice-btn {
+                background: rgba(255, 255, 255, 0.2);
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                color: white;
+                padding: 4px 12px;
+                border-radius: 6px;
+                font-size: 13px;
+                cursor: pointer;
+                transition: all 0.2s;
+                font-weight: 500;
+            }
+
+            .toggle-notice-btn:hover {
+                background: rgba(255, 255, 255, 0.3);
+            }
+
+            .import-notice-content {
+                max-height: 500px;
+                opacity: 1;
+                transition: all 0.3s ease;
+                overflow: hidden;
+                margin-top: 12px;
+            }
+
+            .import-notice.collapsed .import-notice-content {
+                max-height: 0;
+                opacity: 0;
+                margin-top: 0;
             }
 
             .import-notice p {
@@ -607,18 +654,23 @@ async def root():
             </div>
 
             <!-- Import Notice -->
-            <div class="import-notice">
-                <h3>📥 No Data Found?</h3>
-                <p><strong>If your polling station or constituency shows no results</strong>, the data hasn't been imported yet.</p>
-                <p><strong>To add the data:</strong></p>
-                <ol>
-                    <li>Download the PDF from <a href="https://erolls.tn.gov.in/Rollpdf/SIR_2002.aspx" target="_blank">TN Electoral Rolls</a></li>
-                    <li>Click the <code>📄 Import PDF</code> button below</li>
-                    <li>Upload the PDF and confirm the details</li>
-                    <li>Wait for extraction to complete (~3-5 sec/page)</li>
-                    <li>Search immediately after import!</li>
-                </ol>
-                <p style="margin-bottom: 0;"><strong>Need help downloading?</strong> Select: District → Constituency → Part, solve CAPTCHA, then save the PDF.</p>
+            <div class="import-notice collapsed" id="importNotice">
+                <div class="import-notice-header" onclick="toggleNotice()">
+                    <h3>📥 No Data Found? Click here for import instructions</h3>
+                    <button class="toggle-notice-btn" id="noticeToggleBtn">Show</button>
+                </div>
+                <div class="import-notice-content">
+                    <p><strong>If your polling station or constituency shows no results</strong>, the data hasn't been imported yet.</p>
+                    <p><strong>To add the data:</strong></p>
+                    <ol>
+                        <li>Download the PDF from <a href="https://erolls.tn.gov.in/Rollpdf/SIR_2002.aspx" target="_blank">TN Electoral Rolls</a></li>
+                        <li>Click the <code>📄 Import PDF</code> button below</li>
+                        <li>Upload the PDF and confirm the details</li>
+                        <li>Wait for extraction to complete (~3-5 sec/page)</li>
+                        <li>Search immediately after import!</li>
+                    </ol>
+                    <p style="margin-bottom: 0;"><strong>Need help downloading?</strong> Select: District → Constituency → Part, solve CAPTCHA, then save the PDF.</p>
+                </div>
             </div>
 
             <div class="search-box">
@@ -780,6 +832,20 @@ async def root():
             let currentOffset = 0;
             const limit = 50;
             let locationsData = null;
+
+            // Toggle import notice
+            function toggleNotice() {
+                const notice = document.getElementById('importNotice');
+                const btn = document.getElementById('noticeToggleBtn');
+                
+                if (notice.classList.contains('collapsed')) {
+                    notice.classList.remove('collapsed');
+                    btn.textContent = 'Hide';
+                } else {
+                    notice.classList.add('collapsed');
+                    btn.textContent = 'Show';
+                }
+            }
 
             // Load locations on page load
             async function loadLocations() {
